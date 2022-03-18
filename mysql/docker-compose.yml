@@ -1,0 +1,18 @@
+version: "3"
+services:
+  db:
+    build: .
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=db_dev
+      - MYSQL_USER=user_dev
+      - MYSQL_PASSWORD=password
+    volumes:
+      - data-dev:/var/lib/mysql
+      - ./my.cnf:/etc/mysql/conf.d/my.cnf
+
+volumes:
+  data-dev:
+    driver: local
