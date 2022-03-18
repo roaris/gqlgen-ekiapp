@@ -36,6 +36,7 @@ type Config struct {
 
 type ResolverRoot interface {
 	Query() QueryResolver
+	Station() StationResolver
 }
 
 type DirectiveRoot struct {
@@ -61,6 +62,11 @@ type ComplexityRoot struct {
 type QueryResolver interface {
 	StationByName(ctx context.Context, stationName *string) ([]*model.Station, error)
 	StationByCd(ctx context.Context, stationCd *int) (*model.Station, error)
+}
+type StationResolver interface {
+	BeforeStation(ctx context.Context, obj *model.Station) (*model.Station, error)
+	AfterStation(ctx context.Context, obj *model.Station) (*model.Station, error)
+	TransferStation(ctx context.Context, obj *model.Station) ([]*model.Station, error)
 }
 
 type executableSchema struct {
@@ -603,14 +609,14 @@ func (ec *executionContext) _Station_beforeStation(ctx context.Context, field gr
 		Object:     "Station",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.BeforeStation, nil
+		return ec.resolvers.Station().BeforeStation(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -635,14 +641,14 @@ func (ec *executionContext) _Station_afterStation(ctx context.Context, field gra
 		Object:     "Station",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.AfterStation, nil
+		return ec.resolvers.Station().AfterStation(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -667,14 +673,14 @@ func (ec *executionContext) _Station_transferStation(ctx context.Context, field 
 		Object:     "Station",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.TransferStation, nil
+		return ec.resolvers.Station().TransferStation(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1987,7 +1993,7 @@ func (ec *executionContext) _Station(ctx context.Context, sel ast.SelectionSet, 
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "lineName":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -2004,7 +2010,7 @@ func (ec *executionContext) _Station(ctx context.Context, sel ast.SelectionSet, 
 			out.Values[i] = innerFunc(ctx)
 
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "address":
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -2014,26 +2020,56 @@ func (ec *executionContext) _Station(ctx context.Context, sel ast.SelectionSet, 
 			out.Values[i] = innerFunc(ctx)
 
 		case "beforeStation":
+			field := field
+
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Station_beforeStation(ctx, field, obj)
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Station_beforeStation(ctx, field, obj)
+				return res
 			}
 
-			out.Values[i] = innerFunc(ctx)
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
 
+			})
 		case "afterStation":
+			field := field
+
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Station_afterStation(ctx, field, obj)
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Station_afterStation(ctx, field, obj)
+				return res
 			}
 
-			out.Values[i] = innerFunc(ctx)
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
 
+			})
 		case "transferStation":
+			field := field
+
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Station_transferStation(ctx, field, obj)
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Station_transferStation(ctx, field, obj)
+				return res
 			}
 
-			out.Values[i] = innerFunc(ctx)
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
 
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

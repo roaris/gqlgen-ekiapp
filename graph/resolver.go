@@ -35,13 +35,10 @@ func (r *Resolver) getStationsByName(ctx context.Context, name *string) ([]*mode
 	resp := make([]*model.Station, 0, len(stations))
 	for _, v := range stations {
 		resp = append(resp, &model.Station{
-			StationCd:       v.StationCd,
-			StationName:     v.StationName,
-			LineName:        &v.LineName,
-			Address:         &v.Address,
-			BeforeStation:   beforeStation(v.StationCd),
-			AfterStation:    afterStation(v.StationCd),
-			TransferStation: transferStations(v.StationCd),
+			StationCd:   v.StationCd,
+			StationName: v.StationName,
+			LineName:    &v.LineName,
+			Address:     &v.Address,
 		})
 	}
 	return resp, nil
@@ -58,20 +55,18 @@ func (r *Resolver) getStationByCD(ctx context.Context, stationCd *int) (*model.S
 	first := stations[0]
 
 	return &model.Station{
-		StationCd:       first.StationCd,
-		StationName:     first.StationName,
-		LineName:        &first.LineName,
-		Address:         &first.Address,
-		BeforeStation:   beforeStation(first.StationCd),
-		AfterStation:    afterStation(first.StationCd),
-		TransferStation: transferStations(first.StationCd),
+		StationCd:   first.StationCd,
+		StationName: first.StationName,
+		LineName:    &first.LineName,
+		Address:     &first.Address,
 	}, nil
 }
 
-func transferStations(stationCd int) []*model.Station {
+func (r *Resolver) transferStations(ctx context.Context, obj *model.Station) ([]*model.Station, error) {
+	stationCd := obj.StationCd
 	records, err := models.TransfersByStationCD(db, stationCd)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	resp := make([]*model.Station, 0, len(records))
@@ -86,17 +81,18 @@ func transferStations(stationCd int) []*model.Station {
 			Address:     &v.TransferAddress,
 		})
 	}
-	return resp
+	return resp, nil
 }
 
-func beforeStation(stationCd int) *model.Station {
+func (r *Resolver) beforeStation(ctx context.Context, obj *model.Station) (*model.Station, error) {
+	stationCd := obj.StationCd
 	records, err := models.BeforesByStationCD(db, stationCd)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	if len(records) == 0 || records[0].BeforeStationName == "" {
-		return nil
+		return nil, nil
 	}
 
 	return &model.Station{
@@ -104,17 +100,18 @@ func beforeStation(stationCd int) *model.Station {
 		StationName: records[0].BeforeStationName,
 		LineName:    &records[0].LineName,
 		Address:     &records[0].BeforeStationAddress,
-	}
+	}, nil
 }
 
-func afterStation(stationCd int) *model.Station {
+func (r *Resolver) afterStation(ctx context.Context, obj *model.Station) (*model.Station, error) {
+	stationCd := obj.StationCd
 	records, err := models.AftersByStationCD(db, stationCd)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	if len(records) == 0 || records[0].AfterStationName == "" {
-		return nil
+		return nil, nil
 	}
 
 	return &model.Station{
@@ -122,5 +119,5 @@ func afterStation(stationCd int) *model.Station {
 		StationName: records[0].AfterStationName,
 		LineName:    &records[0].LineName,
 		Address:     &records[0].AfterStationAddress,
-	}
+	}, nil
 }

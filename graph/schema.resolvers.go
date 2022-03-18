@@ -18,7 +18,21 @@ func (r *queryResolver) StationByCd(ctx context.Context, stationCd *int) (*model
 	return r.getStationByCD(ctx, stationCd)
 }
 
+func (r *stationResolver) BeforeStation(ctx context.Context, obj *model.Station) (*model.Station, error) {
+	return r.beforeStation(ctx, obj)
+}
+
+func (r *stationResolver) AfterStation(ctx context.Context, obj *model.Station) (*model.Station, error) {
+	return r.afterStation(ctx, obj)
+}
+
+func (r *stationResolver) TransferStation(ctx context.Context, obj *model.Station) ([]*model.Station, error) {
+	return r.transferStations(ctx, obj)
+}
+
 // Query returns generated.QueryResolver implementation.
-func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
+func (r *Resolver) Query() generated.QueryResolver     { return &queryResolver{r} }
+func (r *Resolver) Station() generated.StationResolver { return &stationResolver{r} }
 
 type queryResolver struct{ *Resolver }
+type stationResolver struct{ *Resolver }
